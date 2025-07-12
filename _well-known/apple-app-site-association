@@ -1,0 +1,13 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "YL6S7CMQGW.com.mariages.io.debug",
+        "paths": [
+          "/*"
+        ]
+      }
+    ]
+  }
+}
