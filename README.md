@@ -39,68 +39,21 @@ A simple Express.js server for testing universal links (iOS) and app links (Andr
 
 ## Configuration
 
-### For iOS Universal Links
+The server is pre-configured with example app IDs and paths. Update the following in `server.js`:
 
-1. **Update the Apple App Site Association file** in `server.js`:
+### Server Configuration
 
-   ```javascript
-   appID: 'TEAM_ID.BUNDLE_ID', // Replace with your actual values
-   ```
+1. **Apple App Site Association** - Update the `appID` field with your actual team ID and bundle identifier
+2. **Android Asset Links** - Update the `package_name` and `sha256_cert_fingerprints` with your app's details
+3. **Supported Paths** - Modify the `paths` array to match your app's deep link structure
 
-2. **Add your domain to your iOS app's Associated Domains capability:**
+### Current Configuration
 
-   - Open your iOS project in Xcode
-   - Go to your app target → Signing & Capabilities
-   - Add "Associated Domains" capability
-   - Add: `applinks:localhost:3000`
+The server currently serves:
 
-3. **Handle universal links in your iOS app:**
-   ```swift
-   // In your AppDelegate or SceneDelegate
-   func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
-       if userActivity.activityType == NSUserActivityTypeBrowsingWeb {
-           let url = userActivity.webpageURL!
-           // Handle the URL in your app
-           return true
-       }
-       return false
-   }
-   ```
-
-### For Android App Links
-
-1. **Update the Asset Links file** in `server.js`:
-
-   ```javascript
-   package_name: 'com.example.myapp', // Replace with your package name
-   sha256_cert_fingerprints: ['SHA256_FINGERPRINT'] // Replace with your certificate fingerprint
-   ```
-
-2. **Add intent filters to your AndroidManifest.xml:**
-
-   ```xml
-   <activity android:name=".MainActivity">
-       <intent-filter android:autoVerify="true">
-           <action android:name="android.intent.action.VIEW" />
-           <category android:name="android.intent.category.DEFAULT" />
-           <category android:name="android.intent.category.BROWSABLE" />
-           <data android:scheme="http" android:host="localhost" android:port="3000" />
-       </intent-filter>
-   </activity>
-   ```
-
-3. **Handle app links in your Android app:**
-
-   ```kotlin
-   override fun onCreate(savedInstanceState: Bundle?) {
-       super.onCreate(savedInstanceState)
-
-       intent?.data?.let { uri ->
-           // Handle the URI in your app
-           handleDeepLink(uri)
-       }
-   }
-   ```
+- **Apple App Site Association**: `/.well-known/apple-app-site-association`
+- **Android Asset Links**: `/.well-known/assetlinks.json`
+- **Test Endpoints**: `/test/:id`, `/vendors`, `/profile/:userId`, `/settings`
 
 ## Test Routes
 
@@ -137,35 +90,35 @@ universalLinkTester/
 
 ### Common Issues
 
-1. **Universal links not working on iOS:**
+1. **Server not starting:**
 
-   - Ensure your domain is added to Associated Domains capability
-   - Check that the apple-app-site-association file is accessible
-   - Verify your app ID matches exactly
+   - Check if port 3000 is already in use
+   - Ensure all dependencies are installed: `npm install`
+   - Verify Node.js version compatibility
 
-2. **App links not working on Android:**
+2. **Association files not accessible:**
 
-   - Ensure `android:autoVerify="true"` is set in your intent filter
-   - Verify the assetlinks.json file is accessible
-   - Check that certificate fingerprints match exactly
+   - Check that the server is running on the correct port
+   - Verify the file paths in your browser: `http://localhost:3000/.well-known/apple-app-site-association`
+   - Ensure the Content-Type headers are set correctly
 
-3. **Localhost not working on device:**
-
-   - Use your computer's local IP address instead of localhost
-   - Ensure your device is on the same network
-   - Try using ngrok for external access: `ngrok http 3000`
-
-4. **ngrok connection issues:**
+3. **ngrok connection issues:**
 
    - Ensure your Express server is running on port 3000
    - Check that ngrok is properly authenticated
-   - Verify the ngrok URL is accessible from your mobile device
+   - Verify the ngrok URL is accessible from external devices
    - Try restarting both the Express server and ngrok
 
-5. **SSL/HTTPS issues:**
+4. **SSL/HTTPS issues:**
+
    - ngrok provides HTTPS automatically
    - Make sure you're using the `https://` URL, not `http://`
    - Check that your association files are served with correct Content-Type headers
+
+5. **JSON formatting issues:**
+   - Verify that the association files return valid JSON
+   - Check that the app IDs and paths are correctly formatted
+   - Test the endpoints with curl to see the raw responses
 
 ## Why ngrok is Required for Universal Links
 
@@ -254,21 +207,33 @@ Use the ngrok URL in your tests:
 - `https://abc123.ngrok.io/vendors`
 - `https://abc123.ngrok.io/profile/user456`
 
-## Testing Deep Links in React Native
+## Testing the Server
 
-This universal link tester is designed to work with React Native apps. Here's how to test deep links properly:
-
-### Using npx uri-scheme (Recommended)
-
-The `uri-scheme` package is the most reliable way to test deep links in React Native:
-
-#### Install uri-scheme (no global installation needed):
+### Using curl to test endpoints:
 
 ```bash
-# No installation needed - npx will download and run uri-scheme automatically
+# Test the Apple App Site Association
+curl https://abc123.ngrok.io/.well-known/apple-app-site-association
+
+# Test the Android Asset Links
+curl https://abc123.ngrok.io/.well-known/assetlinks.json
+
+# Test the vendors endpoint
+curl https://abc123.ngrok.io/vendors
+
+# Test with query parameters
+curl "https://abc123.ngrok.io/vendors?test=123"
 ```
 
-#### Test deep links from command line:
+### Using a web browser:
+
+1. Open your browser and navigate to your ngrok URL
+2. Visit the test endpoints to see the JSON responses
+3. Check that the association files are properly formatted
+
+### Using npx uri-scheme to trigger deep links:
+
+The `uri-scheme` package is useful for testing if your mobile app opens when triggered:
 
 ```bash
 # Test iOS deep links
@@ -280,105 +245,14 @@ npx uri-scheme open "https://abc123.ngrok.io/vendors" --android
 # Test with query parameters
 npx uri-scheme open "https://abc123.ngrok.io/vendors?test=123" --ios
 
-# Alternative: You can also use npx without the --ios/--android flags
-npx uri-scheme open "https://abc123.ngrok.io/test/123"
-```
-
-#### Test specific app scenarios:
-
-```bash
 # Test profile deep link
 npx uri-scheme open "https://abc123.ngrok.io/profile/user456" --ios
 
 # Test settings deep link
 npx uri-scheme open "https://abc123.ngrok.io/settings" --android
-
-# Test with custom parameters
-npx uri-scheme open "https://abc123.ngrok.io/test/789?platform=ios&version=1.0" --ios
 ```
 
-### Alternative Testing Methods
-
-#### 1. Using React Native CLI:
-
-```bash
-# iOS Simulator
-npx react-native run-ios --simulator="iPhone 14"
-
-# Android Emulator
-npx react-native run-android
-```
-
-#### 2. Using Xcode (iOS):
-
-1. Open your iOS project in Xcode
-2. Go to Product → Scheme → Edit Scheme
-3. Add launch arguments: `-FIRDebugEnabled`
-4. Use Safari to navigate to your ngrok URL
-
-#### 3. Using Android Studio (Android):
-
-1. Open your Android project in Android Studio
-2. Use ADB to test deep links:
-   ```bash
-   adb shell am start -W -a android.intent.action.VIEW -d "https://abc123.ngrok.io/test/123" com.mariages.io.debug
-   ```
-
-### React Native Deep Link Configuration
-
-Make sure your React Native app is properly configured:
-
-#### For iOS (Info.plist):
-
-```xml
-<key>CFBundleURLTypes</key>
-<array>
-  <dict>
-    <key>CFBundleURLName</key>
-    <string>com.mariages.io.debug</string>
-    <key>CFBundleURLSchemes</key>
-    <array>
-      <string>https</string>
-    </array>
-  </dict>
-</array>
-```
-
-#### For Android (AndroidManifest.xml):
-
-```xml
-<activity android:name=".MainActivity">
-  <intent-filter android:autoVerify="true">
-    <action android:name="android.intent.action.VIEW" />
-    <category android:name="android.intent.category.DEFAULT" />
-    <category android:name="android.intent.category.BROWSABLE" />
-    <data android:scheme="https" android:host="abc123.ngrok.io" />
-  </intent-filter>
-</activity>
-```
-
-### Debugging Deep Links
-
-#### Check if deep links are working:
-
-```bash
-# iOS - Check if app opens
-npx uri-scheme open "https://abc123.ngrok.io/test/123" --ios
-
-# Android - Check if app opens
-npx uri-scheme open "https://abc123.ngrok.io/test/123" --android
-
-# If app doesn't open, check the association files:
-curl https://abc123.ngrok.io/.well-known/apple-app-site-association
-curl https://abc123.ngrok.io/.well-known/assetlinks.json
-```
-
-#### Common React Native deep link issues:
-
-1. **App not opening**: Check if your app's bundle ID matches the association file
-2. **Wrong screen opening**: Verify your React Navigation configuration
-3. **Parameters not passed**: Check your deep link parsing logic
-4. **HTTPS required**: Make sure you're using the ngrok HTTPS URL, not HTTP
+**Note**: This requires your mobile app to be properly configured with the ngrok domain in its deep link settings.
 
 ### Using ngrok for External Access
 
