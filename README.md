@@ -254,6 +254,132 @@ Use the ngrok URL in your tests:
 - `https://abc123.ngrok.io/vendors`
 - `https://abc123.ngrok.io/profile/user456`
 
+## Testing Deep Links in React Native
+
+This universal link tester is designed to work with React Native apps. Here's how to test deep links properly:
+
+### Using npx uri-scheme (Recommended)
+
+The `uri-scheme` package is the most reliable way to test deep links in React Native:
+
+#### Install uri-scheme (no global installation needed):
+
+```bash
+# No installation needed - npx will download and run uri-scheme automatically
+```
+
+#### Test deep links from command line:
+
+```bash
+# Test iOS deep links
+npx uri-scheme open "https://abc123.ngrok.io/test/123" --ios
+
+# Test Android deep links
+npx uri-scheme open "https://abc123.ngrok.io/vendors" --android
+
+# Test with query parameters
+npx uri-scheme open "https://abc123.ngrok.io/vendors?test=123" --ios
+
+# Alternative: You can also use npx without the --ios/--android flags
+npx uri-scheme open "https://abc123.ngrok.io/test/123"
+```
+
+#### Test specific app scenarios:
+
+```bash
+# Test profile deep link
+npx uri-scheme open "https://abc123.ngrok.io/profile/user456" --ios
+
+# Test settings deep link
+npx uri-scheme open "https://abc123.ngrok.io/settings" --android
+
+# Test with custom parameters
+npx uri-scheme open "https://abc123.ngrok.io/test/789?platform=ios&version=1.0" --ios
+```
+
+### Alternative Testing Methods
+
+#### 1. Using React Native CLI:
+
+```bash
+# iOS Simulator
+npx react-native run-ios --simulator="iPhone 14"
+
+# Android Emulator
+npx react-native run-android
+```
+
+#### 2. Using Xcode (iOS):
+
+1. Open your iOS project in Xcode
+2. Go to Product → Scheme → Edit Scheme
+3. Add launch arguments: `-FIRDebugEnabled`
+4. Use Safari to navigate to your ngrok URL
+
+#### 3. Using Android Studio (Android):
+
+1. Open your Android project in Android Studio
+2. Use ADB to test deep links:
+   ```bash
+   adb shell am start -W -a android.intent.action.VIEW -d "https://abc123.ngrok.io/test/123" com.mariages.io.debug
+   ```
+
+### React Native Deep Link Configuration
+
+Make sure your React Native app is properly configured:
+
+#### For iOS (Info.plist):
+
+```xml
+<key>CFBundleURLTypes</key>
+<array>
+  <dict>
+    <key>CFBundleURLName</key>
+    <string>com.mariages.io.debug</string>
+    <key>CFBundleURLSchemes</key>
+    <array>
+      <string>https</string>
+    </array>
+  </dict>
+</array>
+```
+
+#### For Android (AndroidManifest.xml):
+
+```xml
+<activity android:name=".MainActivity">
+  <intent-filter android:autoVerify="true">
+    <action android:name="android.intent.action.VIEW" />
+    <category android:name="android.intent.category.DEFAULT" />
+    <category android:name="android.intent.category.BROWSABLE" />
+    <data android:scheme="https" android:host="abc123.ngrok.io" />
+  </intent-filter>
+</activity>
+```
+
+### Debugging Deep Links
+
+#### Check if deep links are working:
+
+```bash
+# iOS - Check if app opens
+npx uri-scheme open "https://abc123.ngrok.io/test/123" --ios
+
+# Android - Check if app opens
+npx uri-scheme open "https://abc123.ngrok.io/test/123" --android
+
+# If app doesn't open, check the association files:
+curl https://abc123.ngrok.io/.well-known/apple-app-site-association
+curl https://abc123.ngrok.io/.well-known/assetlinks.json
+```
+
+#### Common React Native deep link issues:
+
+1. **App not opening**: Check if your app's bundle ID matches the association file
+2. **Wrong screen opening**: Verify your React Navigation configuration
+3. **Parameters not passed**: Check your deep link parsing logic
+4. **HTTPS required**: Make sure you're using the ngrok HTTPS URL, not HTTP
+
 ### Using ngrok for External Access
 
 If you need to test from a physical device, use ngrok:
